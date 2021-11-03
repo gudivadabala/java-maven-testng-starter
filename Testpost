@@ -1,0 +1,80 @@
+const newman = require('newman'); 
+const fs = require('fs');
+
+delayExecution();
+
+
+function collection1(user, count){
+    newman.run(
+    {
+        collection: 'C:/Users/user/Documents/other/collection.json',
+        environment: require("C:/Users/user/Documents/other/dev.environment.json"),
+        iterationData: [{ "name": user}],
+        delayRequest: 2000,    
+        reporters: 'htmlextra',
+        reporter: {
+            htmlextra: {
+                 export: "./newman/"+user+"_"+(count+1)+'_report_Coll1.html',
+            }
+        }
+
+    },
+    function(err, summary){
+        console.log('first run finished')
+        fs.writeFileSync('env_'+ (count+1) +'.json', JSON.stringify(summary.environment.toJSON(), null, 2));
+        if (err) {
+            console.log(err)
+            return            
+        }
+    });    
+}
+
+
+function collection2(user, count, createdEnvironment){
+    newman.run(
+    {
+        collection: 'C:/Users/user/Documents/other/collection2.json',
+        environment: require(createdEnvironment),
+        reporters: 'htmlextra',
+        reporter: {
+            htmlextra: {
+                 export: "./newman/"+user+"_"+(count+1)+'_report_Coll2.html',
+            }
+        }
+    },
+    function(err, summary){
+        console.log('second run finished')
+
+        if (err) {
+            console.log(err)
+            return            
+        }
+    });    
+}
+
+async function delayExecution() {
+  
+    var data = readCSVUsers();
+    
+    for(let i=0; i<data.length; i++){
+        collection1(data[i], i);
+        await sleep(5000);
+        collection2(data[i], i, "C:/Users/user/Documents/other/env_"+ (i+1) +".json");    
+    }
+    
+    
+
+}
+
+function sleep(ms, number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function readCSVUsers(){
+
+    var data = fs.readFileSync('C:/Users/user/Documents/other/names.csv','utf8');
+    data = data.split("\r\n");
+    data.shift();
+    data.pop();
+    return data;
+}
